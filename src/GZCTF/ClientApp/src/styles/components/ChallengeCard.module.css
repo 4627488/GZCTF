@@ -2,6 +2,7 @@
   0% {
     opacity: 0.2;
   }
+
   100% {
     opacity: 0.8;
   }
@@ -28,16 +29,14 @@
 
 .root {
   filter: saturate(0.9);
+}
 
-  &[data-solved] {
-    @mixin dark {
-      filter: brightness(0.8);
-    }
+:global(body[data-mantine-color-scheme='dark']) :local(.root[data-solved]) {
+  filter: brightness(0.8);
+}
 
-    @mixin light {
-      filter: brightness(0.95);
-    }
-  }
+:global(body:not([data-mantine-color-scheme='dark'])) :local(.root[data-solved]) {
+  filter: brightness(0.95);
 }
 
 .flag {
@@ -66,8 +65,10 @@
   position: relative;
   z-index: 92;
   transition: transform 0.1s;
+}
 
-  @mixin hover {
+@media (hover: hover) {
+  .blood:hover {
     transform: translateY(-2px);
   }
 }

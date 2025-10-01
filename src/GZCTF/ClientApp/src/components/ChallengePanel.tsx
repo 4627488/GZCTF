@@ -53,13 +53,19 @@ export const ChallengePanel: FC = () => {
   })
 
   const allChallenges = Object.values(challenges ?? {}).flat()
+  const now = dayjs()
+  const isChallengeFrozen = (chal: ChallengeInfo) => {
+    const freezeTime = chal.scoreFreezeTimeUtc ?? game?.end
+    if (freezeTime == null) return false
+    return !dayjs(freezeTime).isAfter(now)
+  }
 
   const currentChallenges =
     challenges &&
     (activeTab !== 'All' ? (challenges[activeTab] ?? []) : allChallenges).filter((chal) => {
       const solvedEntry = teamInfo?.rank?.solvedChallenges?.find((c) => c.id === chal.id)
       if (hideSolved && solvedEntry) return false
-      if (hideFrozen && solvedEntry?.type === SubmissionType.Late) return false
+      if (hideFrozen && isChallengeFrozen(chal)) return false
       return true
     })
 
@@ -254,6 +260,7 @@ export const ChallengePanel: FC = () => {
             {currentChallenges?.map((chal) => {
               const status = teamInfo?.rank?.solvedChallenges?.find((c) => c.id === chal.id)?.type
               const solved = status !== SubmissionType.Unaccepted && status !== undefined
+              const frozen = isChallengeFrozen(chal)
 
               return (
                 <ChallengeCard
@@ -268,6 +275,8 @@ export const ChallengePanel: FC = () => {
                     window.location.hash = `#${chal.id}-${encodeURIComponent(chal.title?.replace(/ /g, '-') ?? '')}`
                   }}
                   solved={solved}
+                  status={status}
+                  frozen={frozen}
                   teamId={teamInfo?.rank?.id}
                 />
               )
