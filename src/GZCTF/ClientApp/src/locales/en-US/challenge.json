@@ -90,6 +90,10 @@
       }
     },
     "solved": "<1>{{solved}}</1> SOLVES",
+    "score_freeze": {
+      "pending": "Scoreboard will freeze at {{time}}. Submissions after that moment won't earn points.",
+      "active": "Scoreboard was frozen at {{time}}. Current submissions won't change your score."
+    },
     "wrong_flag_hints": [
       "Where there's a will, there's a flag.",
       "To be, or not to be, that is not the flag.",

@@ -11,6 +11,7 @@
     },
     "finished": "Game Ended",
     "hide_solved": "Hide Solved",
+    "hide_frozen": "Hide Post-Freeze Solves",
     "join": "Join",
     "leave": "Leave Game",
     "login_required": "Please Login",
@@ -82,6 +83,7 @@
     },
     "scoreboard_note": "Teams with same score are ranked by submission time.",
     "scoreboard_tip": "Tip: Scroll through the list of challenges with left and right arrow!",
+    "scoreboard_late_tooltip": "Submitted after freeze; no points awarded.",
     "start_at": "Starts at",
     "start_time": "Start Time",
     "team_view": {
@@ -93,6 +95,18 @@
     "traffic": {
       "delete_confirm": "Delete this traffic file?",
       "deleted_all_confirm": "Delete all listed traffic?"
+    },
+    "legend": {
+      "late": "Post-Freeze Solve",
+      "late_descr": "No points awarded"
+    },
+    "submission_type": {
+      "Unaccepted": "Not Solved",
+      "Normal": "Solved",
+      "FirstBlood": "First Blood",
+      "SecondBlood": "Second Blood",
+      "ThirdBlood": "Third Blood",
+      "Late": "Post-Freeze Solve"
     },
     "writeup": {
       "current": "Current Writeup",

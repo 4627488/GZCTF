@@ -1,4 +1,5 @@
-﻿using GZCTF.Models.Request.Shared;
+﻿using System;
+using GZCTF.Models.Request.Shared;
 
 namespace GZCTF.Models.Request.Game;
 
@@ -57,6 +58,11 @@ public class ChallengeDetailModel
     /// </summary>
     public int Attempts { get; set; }
 
+    /// <summary>
+    /// The time after which accepted submissions no longer award score
+    /// </summary>
+    public DateTimeOffset? ScoreFreezeTimeUtc { get; set; }
+
     internal static ChallengeDetailModel FromInstance(GameInstance gameInstance) =>
         new()
         {
@@ -69,6 +75,7 @@ public class ChallengeDetailModel
             Type = gameInstance.Challenge.Type,
             Limit = gameInstance.Challenge.SubmissionLimit,
             Attempts = gameInstance.SubmissionCount,
+            ScoreFreezeTimeUtc = gameInstance.Challenge.ScoreFreezeTimeUtc,
             Context = new()
             {
                 InstanceEntry = gameInstance.Container?.Entry,

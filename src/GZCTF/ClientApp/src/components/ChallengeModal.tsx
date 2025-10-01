@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Divider,
   Group,
@@ -12,7 +13,7 @@ import {
   ScrollAreaAutosize,
   Input,
 } from '@mantine/core'
-import { mdiLightbulbOnOutline, mdiOpenInNew, mdiPackageVariantClosed } from '@mdi/js'
+import { mdiCalendarClockOutline, mdiLightbulbOnOutline, mdiOpenInNew, mdiPackageVariantClosed, mdiSnowflake } from '@mdi/js'
 import Icon from '@mdi/react'
 import { FC, useEffect, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -22,6 +23,8 @@ import { ChallengeCategoryItemProps } from '@Utils/Shared'
 import { ChallengeDetailModel, ChallengeType } from '@Api'
 import classes from '@Styles/ChallengeModal.module.css'
 import misc from '@Styles/Misc.module.css'
+import dayjs from 'dayjs'
+import { useLanguage } from '@Utils/I18n'
 
 export interface ChallengeModalProps extends ModalProps {
   challenge?: ChallengeDetailModel
@@ -70,6 +73,23 @@ export const ChallengeModal: FC<ChallengeModalProps> = (props) => {
 
   const isContainer =
     challenge?.type === ChallengeType.StaticContainer || challenge?.type === ChallengeType.DynamicContainer
+
+  const { locale } = useLanguage()
+  const freezeInfo = useMemo(() => {
+    if (!challenge?.scoreFreezeTimeUtc) return null
+    const freeze = dayjs(challenge.scoreFreezeTimeUtc)
+    const formatted = freeze.locale(locale).format('SLL LTS')
+    if (freeze.isBefore(dayjs())) {
+      return {
+        active: true,
+        message: t('challenge.content.score_freeze.active', { time: formatted }),
+      }
+    }
+    return {
+      active: false,
+      message: t('challenge.content.score_freeze.pending', { time: formatted }),
+    }
+  }, [challenge?.scoreFreezeTimeUtc, locale, t])
 
   const title = (
     <Stack gap="xs">
@@ -181,6 +201,15 @@ export const ChallengeModal: FC<ChallengeModalProps> = (props) => {
 
   const footer = (
     <Stack gap="xs" className={classes.footer}>
+      {freezeInfo && (
+        <Alert
+          variant="light"
+          color={freezeInfo.active ? 'red' : 'yellow'}
+          icon={<Icon path={freezeInfo.active ? mdiSnowflake : mdiCalendarClockOutline} size={0.9} />}
+        >
+          {freezeInfo.message}
+        </Alert>
+      )}
       {(withAttachment || withInstance) && <Divider />}
       {attachment}
       {instance}

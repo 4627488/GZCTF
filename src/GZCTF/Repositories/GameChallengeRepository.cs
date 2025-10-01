@@ -108,22 +108,37 @@ public class GameChallengeRepository(
 
         try
         {
-            var query = Context.GameInstances.AsNoTracking()
+            var acceptedCountsQuery = Context.Submissions.AsNoTracking()
                 .IgnoreAutoIncludes()
-                .Include(i => i.Participation)
-                .Include(i => i.Challenge)
-                .Where(i => i.Challenge.GameId == game.Id && i.IsSolved &&
-                            i.Participation.Status == ParticipationStatus.Accepted)
-                .GroupBy(i => i.ChallengeId)
+                .Where(s => s.GameId == game.Id
+                            && s.Status == AnswerResult.Accepted
+                            && s.GameChallenge != null
+                            && s.GameChallenge.IsEnabled
+                            && s.Participation != null
+                            && s.Participation.Status == ParticipationStatus.Accepted)
+                .GroupBy(s => new
+                {
+                    s.ChallengeId,
+                    s.ParticipationId,
+                    FreezeTime = s.GameChallenge!.ScoreFreezeTimeUtc ?? game.EndTimeUtc
+                })
+                .Select(g => new
+                {
+                    g.Key.ChallengeId,
+                    g.Key.FreezeTime,
+                    FirstSubmit = g.Min(x => x.SubmitTimeUtc)
+                })
+                .Where(r => r.FirstSubmit < r.FreezeTime)
+                .GroupBy(r => r.ChallengeId)
                 .Select(g => new { ChallengeId = g.Key, Count = g.Count() });
 
             await Context.GameChallenges.AsNoTracking().IgnoreAutoIncludes()
-                .Where(c => query.Any(r => r.ChallengeId == c.Id))
+                .Where(c => acceptedCountsQuery.Any(r => r.ChallengeId == c.Id))
                 .ExecuteUpdateAsync(
                     setter =>
                         setter.SetProperty(
                             c => c.AcceptedCount,
-                            c => query.First(r => r.ChallengeId == c.Id).Count),
+                            c => acceptedCountsQuery.First(r => r.ChallengeId == c.Id).Count),
                     token);
 
             var attempts = Context.Submissions.AsNoTracking()

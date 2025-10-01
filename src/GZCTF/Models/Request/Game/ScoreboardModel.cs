@@ -245,6 +245,12 @@ public partial class ChallengeInfo
     public int SolvedCount { get; set; }
 
     /// <summary>
+    /// Number of teams that solved the challenge after the score freeze (no score awarded)
+    /// </summary>
+    [JsonPropertyName("frozenSolved")]
+    public int FrozenSolvedCount { get; set; }
+
+    /// <summary>
     /// Bloods for the challenge
     /// </summary>
     public List<Blood> Bloods { get; set; } = [];
@@ -255,6 +261,12 @@ public partial class ChallengeInfo
     [NotMapped]
     [MemoryPackIgnore]
     public bool DisableBloodBonus { get; set; }
+
+    /// <summary>
+    /// The time after which accepted submissions no longer award score
+    /// </summary>
+    [JsonPropertyName("scoreFreezeTimeUtc")]
+    public DateTimeOffset? ScoreFreezeTimeUtc { get; set; }
 }
 
 [MemoryPackable]

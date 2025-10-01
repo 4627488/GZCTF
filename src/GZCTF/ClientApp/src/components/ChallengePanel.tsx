@@ -46,15 +46,22 @@ export const ChallengePanel: FC = () => {
     defaultValue: false,
     getInitialValueInEffect: false,
   })
+  const [hideFrozen, setHideFrozen] = useLocalStorage({
+    key: 'hide-frozen',
+    defaultValue: false,
+    getInitialValueInEffect: false,
+  })
 
   const allChallenges = Object.values(challenges ?? {}).flat()
 
   const currentChallenges =
     challenges &&
-    (activeTab !== 'All' ? (challenges[activeTab] ?? []) : allChallenges).filter(
-      (chal) =>
-        !hideSolved || (teamInfo && teamInfo.rank?.solvedChallenges?.find((c) => c.id === chal.id)) === undefined
-    )
+    (activeTab !== 'All' ? (challenges[activeTab] ?? []) : allChallenges).filter((chal) => {
+      const solvedEntry = teamInfo?.rank?.solvedChallenges?.find((c) => c.id === chal.id)
+      if (hideSolved && solvedEntry) return false
+      if (hideFrozen && solvedEntry?.type === SubmissionType.Late) return false
+      return true
+    })
 
   const [challenge, setChallenge] = useState<ChallengeInfo | null>(null)
   const [detailOpened, setDetailOpened] = useState(false)
@@ -166,6 +173,17 @@ export const ChallengePanel: FC = () => {
           label={
             <Text fz="md" fw="bold" ta="right">
               {t('game.button.hide_solved')}
+            </Text>
+          }
+        />
+        <Switch
+          w="10.5rem"
+          checked={hideFrozen}
+          onChange={(e) => setHideFrozen(e.target.checked)}
+          classNames={{ body: classes.switch }}
+          label={
+            <Text fz="md" fw="bold" ta="right">
+              {t('game.button.hide_frozen')}
             </Text>
           }
         />

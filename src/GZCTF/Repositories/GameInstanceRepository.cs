@@ -295,25 +295,42 @@ public class GameInstanceRepository(
                         : AnswerResult.WrongAnswer;
 
                 var firstTime = !instance.IsSolved && updateSub.Status == AnswerResult.Accepted;
-                var beforeEnd = submission.Game!.EndTimeUtc > submission.SubmitTimeUtc;
+                var freezeTime = instance.Challenge.ScoreFreezeTimeUtc ?? submission.Game!.EndTimeUtc;
+                var beforeFreeze = freezeTime > submission.SubmitTimeUtc;
 
                 updateSub.GameChallenge!.SubmissionCount++;
 
-                if (firstTime && beforeEnd)
+                if (updateSub.Status == AnswerResult.Accepted)
                 {
-                    instance.IsSolved = true;
-                    updateSub.GameChallenge!.AcceptedCount++;
-                    ret = updateSub.GameChallenge.AcceptedCount switch
+                    if (beforeFreeze)
                     {
-                        1 => SubmissionType.FirstBlood,
-                        2 => SubmissionType.SecondBlood,
-                        3 => SubmissionType.ThirdBlood,
-                        _ => SubmissionType.Normal
-                    };
+                        if (firstTime)
+                        {
+                            instance.IsSolved = true;
+                            updateSub.GameChallenge!.AcceptedCount++;
+                            ret = updateSub.GameChallenge.AcceptedCount switch
+                            {
+                                1 => SubmissionType.FirstBlood,
+                                2 => SubmissionType.SecondBlood,
+                                3 => SubmissionType.ThirdBlood,
+                                _ => SubmissionType.Normal
+                            };
+                        }
+                        else
+                        {
+                            ret = SubmissionType.Normal;
+                        }
+                    }
+                    else
+                    {
+                        if (firstTime)
+                            instance.IsSolved = true;
+                        ret = SubmissionType.Late;
+                    }
                 }
                 else
                 {
-                    ret = updateSub.Status == AnswerResult.Accepted ? SubmissionType.Normal : SubmissionType.Unaccepted;
+                    ret = SubmissionType.Unaccepted;
                 }
 
                 await SaveAsync(token);

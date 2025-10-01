@@ -37,6 +37,7 @@ import {
   mdiRobotLoveOutline,
   mdiSearchWeb,
   mdiWeb,
+  mdiSnowflake,
 } from '@mdi/js'
 import { Icon } from '@mdi/react'
 import { useTranslation } from 'react-i18next'
@@ -283,6 +284,10 @@ export const SubmissionTypeColorMap = () => {
       SubmissionType.ThirdBlood,
       colorScheme === 'dark' ? darken(theme.colors.orange[7], 0.25) : lighten(theme.colors.orange[7], 0.2),
     ],
+    [
+      SubmissionType.Late,
+      colorScheme === 'dark' ? theme.colors.gray[5] : darken(theme.colors.gray[4], 0.2),
+    ],
   ])
 }
 
@@ -304,6 +309,7 @@ export const SubmissionTypeIconMap = (size: number) => {
         SubmissionType.ThirdBlood,
         { path: mdiHexagonSlice2, size: size, color: colorMap.get(SubmissionType.ThirdBlood) },
       ],
+      [SubmissionType.Late, { path: mdiSnowflake, size: size, color: colorMap.get(SubmissionType.Late) }],
     ]),
     colorMap,
   }
@@ -482,7 +488,7 @@ export class ClientError {
   constructor(
     public title: string,
     public message: string
-  ) {}
+  ) { }
 }
 
 /** 系统错误信息 */

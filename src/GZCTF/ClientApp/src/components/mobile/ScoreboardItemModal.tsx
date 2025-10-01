@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next'
 import { ScoreboardItemModalProps } from '@Components/ScoreboardItemModal'
 import { TeamRadarMap } from '@Components/charts/TeamRadarMap'
 import { useLanguage } from '@Utils/I18n'
-import { ChallengeInfo } from '@Api'
+import { ChallengeInfo, SubmissionType } from '@Api'
 import inputClasses from '@Styles/Input.module.css'
 import modalClasses from '@Styles/ScoreboardItemModal.module.css'
 import tableClasses from '@Styles/Table.module.css'
@@ -65,8 +65,12 @@ export const MobileScoreboardItemModal: FC<ScoreboardItemModalProps> = React.mem
 
   const sortedSolvedChallenges = useMemo(() => {
     if (!item?.solvedChallenges) return []
-    return item.solvedChallenges.sort((a, b) => dayjs(b.time).diff(dayjs(a.time)))
+    return item.solvedChallenges.slice().sort((a, b) => dayjs(b.time).diff(dayjs(a.time)))
   }, [item?.solvedChallenges])
+
+  const lateSolvedCount = item?.solvedChallenges?.filter((c) => c.type === SubmissionType.Late).length ?? 0
+  const scoredSolvedCount = (item?.solvedChallenges?.length ?? 0) - lateSolvedCount
+  const solvedCountDisplay = lateSolvedCount > 0 ? `${scoredSolvedCount} (+${lateSolvedCount})` : `${scoredSolvedCount}`
 
   return (
     <Modal
@@ -131,7 +135,7 @@ export const MobileScoreboardItemModal: FC<ScoreboardItemModalProps> = React.mem
             </Stack>
             <Stack gap={1}>
               <Text fw="bold" size="sm" ff="monospace">
-                {item?.solvedCount}
+                {solvedCountDisplay}
               </Text>
               <Text size="xs">{t('game.label.score_table.solved_count')}</Text>
             </Stack>
@@ -144,6 +148,7 @@ export const MobileScoreboardItemModal: FC<ScoreboardItemModalProps> = React.mem
               <Table.Thead>
                 <Table.Tr>
                   <Table.Th>{t('common.label.challenge')}</Table.Th>
+                  <Table.Th>{t('game.label.score_table.type')}</Table.Th>
                   <Table.Th>{t('game.label.score_table.score')}</Table.Th>
                   <Table.Th>{t('common.label.time')}</Table.Th>
                 </Table.Tr>
@@ -153,6 +158,8 @@ export const MobileScoreboardItemModal: FC<ScoreboardItemModalProps> = React.mem
                   challengeIdMap &&
                   sortedSolvedChallenges.map((chal) => {
                     const info = challengeIdMap.get(chal.id!)
+                    const submissionType = chal.type ?? SubmissionType.Unaccepted
+                    const typeLabel = t(`game.content.submission_type.${submissionType}`)
                     return (
                       <Table.Tr key={chal.id} ff="monospace">
                         <Table.Td>
@@ -170,6 +177,7 @@ export const MobileScoreboardItemModal: FC<ScoreboardItemModalProps> = React.mem
                             }}
                           />
                         </Table.Td>
+                        <Table.Td>{typeLabel}</Table.Td>
                         <Table.Td>{chal.score}</Table.Td>
                         <Table.Td>{dayjs(chal.time).locale(locale).format('SL HH:mm')}</Table.Td>
                       </Table.Tr>

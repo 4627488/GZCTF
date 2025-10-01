@@ -530,6 +530,9 @@ namespace GZCTF.Migrations
                     b.Property<int>("OriginalScore")
                         .HasColumnType("integer");
 
+                    b.Property<DateTimeOffset?>("ScoreFreezeTimeUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int?>("StorageLimit")
                         .HasColumnType("integer");
 

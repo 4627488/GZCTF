@@ -41,6 +41,9 @@ export const ChallengeCard: FC<ChallengeCardProps> = (props: ChallengeCardProps)
   const cateData = challengeCategoryLabelMap.get(challenge.category!)
   const theme = useMantineTheme()
   const { locale } = useLanguage()
+  const solvedCount = challenge.solved ?? 0
+  const frozenSolved = challenge.frozenSolved ?? 0
+  const solvedDisplay = frozenSolved > 0 ? `${solvedCount} (+${frozenSolved})` : `${solvedCount}`
 
   return (
     <Card
@@ -65,7 +68,7 @@ export const ChallengeCard: FC<ChallengeCardProps> = (props: ChallengeCardProps)
               <Trans
                 i18nKey={'challenge.content.solved'}
                 values={{
-                  solved: challenge.solved,
+                  solved: solvedDisplay,
                 }}
               >
                 _

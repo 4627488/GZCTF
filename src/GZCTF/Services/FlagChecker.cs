@@ -120,9 +120,7 @@ public class FlagChecker(
                                 await eventRepository.AddEvent(
                                     GameEvent.FromSubmission(item, type, ans, StaticLocalizer), token);
 
-                                // only flush the scoreboard if the contest is not ended and the submission is accepted
-                                if (item.Game!.EndTimeUtc > item.SubmitTimeUtc)
-                                    await cacheHelper.FlushScoreboardCache(item.GameId, token);
+                                await cacheHelper.FlushScoreboardCache(item.GameId, token);
                                 break;
                             }
                         default:
@@ -165,7 +163,10 @@ public class FlagChecker(
                             }
                     }
 
-                    if (item.Game!.EndTimeUtc > DateTimeOffset.UtcNow
+                    var submissionFreezeTime = item.GameChallenge?.ScoreFreezeTimeUtc ?? item.Game!.EndTimeUtc;
+
+                    if (submissionFreezeTime > DateTimeOffset.UtcNow
+                        && submissionFreezeTime > item.SubmitTimeUtc
                         && type != SubmissionType.Unaccepted
                         && type != SubmissionType.Normal)
                         await gameNoticeRepository.AddNotice(

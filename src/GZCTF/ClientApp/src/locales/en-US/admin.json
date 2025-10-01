@@ -160,6 +160,14 @@
           "label": "Max Attempts Allowed",
           "placeholder": "Unlimited"
         },
+        "score_freeze": {
+          "label": "Score Freeze",
+          "description": "Stop awarding points for accepted flags after a given moment while still allowing submissions.",
+          "date": "Freeze date",
+          "time": "Freeze time",
+          "range": "Game window: {{start}} — {{end}}",
+          "error": "Choose a time between {{start}} and {{end}}"
+        },
         "title": "Title",
         "traffic_capture": {
           "description": "Capturing the traffic when the team solves challenges. Platform proxy needs to be enabled",

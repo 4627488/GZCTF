@@ -589,6 +589,16 @@ public class EditController(
 
         var hintUpdated = model.IsHintUpdated(res.Hints?.GetSetHashCode());
 
+        if (model.ScoreFreezeTimeUtc is { } freezeTime)
+        {
+            var normalized = freezeTime.ToUniversalTime();
+
+            if (normalized < game.StartTimeUtc || normalized > game.EndTimeUtc)
+                return BadRequest(new RequestResponse(localizer[nameof(Resources.Program.Model_OutOfRange)]));
+
+            model.ScoreFreezeTimeUtc = normalized;
+        }
+
         if (!string.IsNullOrWhiteSpace(model.FlagTemplate) && res.Type == ChallengeType.DynamicContainer &&
             !model.IsValidFlagTemplate())
             return BadRequest(new RequestResponse(localizer[nameof(Resources.Program.Challenge_FlagTooTrivial)]));

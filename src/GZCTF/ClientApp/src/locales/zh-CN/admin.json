@@ -160,6 +160,14 @@
           "label": "最大提交次数",
           "placeholder": "不限制"
         },
+        "score_freeze": {
+          "label": "分数冻结",
+          "description": "在指定时间之后仍允许提交，但不再记分。",
+          "date": "冻结日期",
+          "time": "冻结时间",
+          "range": "比赛时间范围：{{start}} — {{end}}",
+          "error": "请选择介于 {{start}} 与 {{end}} 之间的时间"
+        },
         "title": "题目标题",
         "traffic_capture": {
           "description": "捕获队伍解题流量，需要开启平台代理",

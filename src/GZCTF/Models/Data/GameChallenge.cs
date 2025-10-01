@@ -17,6 +17,11 @@ public class GameChallenge : Challenge
     public bool DisableBloodBonus { get; set; }
 
     /// <summary>
+    /// The time after which accepted submissions no longer award score
+    /// </summary>
+    public DateTimeOffset? ScoreFreezeTimeUtc { get; set; }
+
+    /// <summary>
     /// Initial score
     /// </summary>
     [Required]
@@ -74,6 +79,11 @@ public class GameChallenge : Challenge
 
         // Container only
         EnableTrafficCapture = Type.IsContainer() && (model.EnableTrafficCapture ?? EnableTrafficCapture);
+
+        if (model.ScoreFreezeTimeUtc is not null)
+            ScoreFreezeTimeUtc = model.ScoreFreezeTimeUtc;
+        else if (model.ClearScoreFreezeTime == true)
+            ScoreFreezeTimeUtc = null;
     }
 
     #region Db Relationship

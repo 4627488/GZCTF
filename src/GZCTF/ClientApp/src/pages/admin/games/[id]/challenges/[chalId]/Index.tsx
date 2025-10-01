@@ -14,6 +14,7 @@ import {
   TextInput,
   Title,
 } from '@mantine/core'
+import { DatePickerInput, TimeInput } from '@mantine/dates'
 import { useModals } from '@mantine/modals'
 import { showNotification } from '@mantine/notifications'
 import { mdiCheck, mdiContentSaveOutline, mdiDatabaseEditOutline, mdiDeleteOutline, mdiEyeOutline } from '@mdi/js'
@@ -39,6 +40,7 @@ import { useEditChallenge, useEditChallenges } from '@Hooks/useEdit'
 import { useGame } from '@Hooks/useGame'
 import api, { ChallengeCategory, ChallengeType, ChallengeUpdateModel } from '@Api'
 import misc from '@Styles/Misc.module.css'
+import dayjs from 'dayjs'
 
 const GameChallengeEdit: FC = () => {
   const navigate = useNavigate()
@@ -57,6 +59,10 @@ const GameChallengeEdit: FC = () => {
   const [type, setType] = useState<string | null>(challenge?.type ?? ChallengeType.StaticAttachment)
   const [currentAcceptCount, setCurrentAcceptCount] = useState(0)
   const [previewOpened, setPreviewOpened] = useState(false)
+  const [scoreFreezeEnabled, setScoreFreezeEnabled] = useState<boolean>(Boolean(challenge?.scoreFreezeTimeUtc))
+  const [scoreFreezeTime, setScoreFreezeTime] = useState<dayjs.Dayjs | null>(
+    challenge?.scoreFreezeTimeUtc ? dayjs(challenge.scoreFreezeTimeUtc) : null
+  )
 
   const modals = useModals()
   const challengeTypeLabelMap = useChallengeTypeLabelMap()
@@ -66,11 +72,13 @@ const GameChallengeEdit: FC = () => {
 
   useEffect(() => {
     if (challenge) {
-      setChallengeInfo({ ...challenge })
+      setChallengeInfo({ ...challenge, clearScoreFreezeTime: undefined })
       setCategory(challenge.category)
       setType(challenge.type)
       setMinRate((challenge?.minScoreRate ?? 0.25) * 100)
       setCurrentAcceptCount(challenge.acceptedCount)
+      setScoreFreezeEnabled(Boolean(challenge.scoreFreezeTimeUtc))
+      setScoreFreezeTime(challenge.scoreFreezeTimeUtc ? dayjs(challenge.scoreFreezeTimeUtc) : null)
     }
   }, [challenge])
 
@@ -100,6 +108,42 @@ const GameChallengeEdit: FC = () => {
       }
     }
   }
+
+  const applyScoreFreezeTime = (value: dayjs.Dayjs | null, shouldClear?: boolean) => {
+    setScoreFreezeTime(value)
+    setChallengeInfo((prev) => {
+      const next = { ...prev }
+      if (value) {
+        next.scoreFreezeTimeUtc = value.valueOf()
+        next.clearScoreFreezeTime = false
+      } else {
+        next.scoreFreezeTimeUtc = undefined
+        next.clearScoreFreezeTime = shouldClear ? true : undefined
+      }
+      return next
+    })
+  }
+
+  const gameStart = game?.start ? dayjs(game.start) : null
+  const gameEnd = game?.end ? dayjs(game.end) : null
+  const resolveDefaultFreezeTime = () => {
+    if (scoreFreezeTime) return scoreFreezeTime
+    if (challenge?.scoreFreezeTimeUtc) return dayjs(challenge.scoreFreezeTimeUtc)
+    if (gameEnd) return gameEnd.second(0).millisecond(0)
+    if (gameStart) return gameStart.second(0).millisecond(0)
+    return dayjs().second(0).millisecond(0)
+  }
+  const freezeOutOfRange =
+    scoreFreezeEnabled &&
+    scoreFreezeTime &&
+    ((gameStart && scoreFreezeTime.isBefore(gameStart)) || (gameEnd && scoreFreezeTime.isAfter(gameEnd)))
+
+  const freezeRangeError = freezeOutOfRange
+    ? t('admin.content.games.challenges.score_freeze.error', {
+      start: gameStart ? gameStart.format('YYYY-MM-DD HH:mm:ss') : 'N/A',
+      end: gameEnd ? gameEnd.format('YYYY-MM-DD HH:mm:ss') : 'N/A',
+    })
+    : undefined
 
   const onConfirmDelete = async () => {
     setDisabled(true)
@@ -327,6 +371,77 @@ const GameChallengeEdit: FC = () => {
                 }
               }}
             />
+          </Grid.Col>
+          <Grid.Col span={2}>
+            <Stack gap="xs">
+              <Switch
+                disabled={disabled}
+                checked={scoreFreezeEnabled}
+                label={SwitchLabel(
+                  t('admin.content.games.challenges.score_freeze.label'),
+                  t('admin.content.games.challenges.score_freeze.description')
+                )}
+                onChange={(event) => {
+                  const checked = event.currentTarget.checked
+                  setScoreFreezeEnabled(checked)
+                  if (checked) {
+                    applyScoreFreezeTime(resolveDefaultFreezeTime(), false)
+                  } else {
+                    applyScoreFreezeTime(null, true)
+                  }
+                }}
+              />
+              {scoreFreezeEnabled && (
+                <Group align="flex-end" gap="sm" wrap="wrap" grow>
+                  <DatePickerInput
+                    flex={1}
+                    label={t('admin.content.games.challenges.score_freeze.date')}
+                    size="sm"
+                    disabled={disabled || !scoreFreezeEnabled}
+                    value={scoreFreezeTime?.toDate() ?? null}
+                    minDate={gameStart?.toDate()}
+                    maxDate={gameEnd?.toDate()}
+                    clearable={false}
+                    onChange={(value) => {
+                      if (!value) return
+                      const base = scoreFreezeTime ?? resolveDefaultFreezeTime()
+                      const updated = dayjs(value)
+                        .hour(base.hour())
+                        .minute(base.minute())
+                        .second(base.second())
+                        .millisecond(0)
+                      applyScoreFreezeTime(updated)
+                    }}
+                    error={freezeRangeError}
+                  />
+                  <TimeInput
+                    label={t('admin.content.games.challenges.score_freeze.time')}
+                    disabled={disabled || !scoreFreezeEnabled}
+                    value={scoreFreezeTime?.format('HH:mm:ss') ?? '00:00:00'}
+                    withSeconds
+                    onChange={(event) => {
+                      const newTime = event.currentTarget.value.split(':')
+                      if (newTime.length < 2) return
+                      const hours = Number(newTime[0]) || 0
+                      const minutes = Number(newTime[1]) || 0
+                      const seconds = newTime.length > 2 ? Number(newTime[2]) || 0 : 0
+                      const base = scoreFreezeTime ?? resolveDefaultFreezeTime()
+                      const updated = base.hour(hours).minute(minutes).second(seconds).millisecond(0)
+                      applyScoreFreezeTime(updated)
+                    }}
+                    error={freezeRangeError}
+                  />
+                </Group>
+              )}
+              {scoreFreezeEnabled && (gameStart || gameEnd) && (
+                <Text size="xs" c="dimmed">
+                  {t('admin.content.games.challenges.score_freeze.range', {
+                    start: gameStart ? gameStart.format('YYYY-MM-DD HH:mm:ss') : 'N/A',
+                    end: gameEnd ? gameEnd.format('YYYY-MM-DD HH:mm:ss') : 'N/A',
+                  })}
+                </Text>
+              )}
+            </Stack>
           </Grid.Col>
         </Grid>
         <Grid columns={3}>

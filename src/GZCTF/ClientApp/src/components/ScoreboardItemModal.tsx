@@ -101,6 +101,10 @@ export const ScoreboardItemModal: FC<ScoreboardItemModalProps> = (props) => {
     return calculateMemberContribution(item)
   }, [valid, item])
 
+  const lateSolvedCount = item?.solvedChallenges?.filter((c) => c.type === SubmissionType.Late).length ?? 0
+  const scoredSolvedCount = (item?.solvedChallenges?.length ?? 0) - lateSolvedCount
+  const solvedCountDisplay = lateSolvedCount > 0 ? `${scoredSolvedCount} (+${lateSolvedCount})` : `${scoredSolvedCount}`
+
   return (
     <Modal
       {...modalProps}
@@ -172,7 +176,7 @@ export const ScoreboardItemModal: FC<ScoreboardItemModalProps> = (props) => {
             </Stack>
             <Stack gap={2}>
               <Text fw="bold" size="sm" ff="monospace">
-                {item?.solvedCount}
+                {solvedCountDisplay}
               </Text>
               <Text size="xs" fw={500}>
                 {t('game.label.score_table.solved_count')}
@@ -197,9 +201,12 @@ export const ScoreboardItemModal: FC<ScoreboardItemModalProps> = (props) => {
                 {item?.solvedChallenges &&
                   challengeIdMap &&
                   item.solvedChallenges
+                    .slice()
                     .sort((a, b) => dayjs(b.time).diff(dayjs(a.time)))
                     .map((chal) => {
                       const info = challengeIdMap.get(chal.id!)!
+                      const submissionType = chal.type ?? SubmissionType.Unaccepted
+                      const typeLabel = t(`game.content.submission_type.${submissionType}`)
                       return (
                         <Table.Tr key={chal.id}>
                           <Table.Td fw="bold">{chal.userName}</Table.Td>
@@ -220,7 +227,7 @@ export const ScoreboardItemModal: FC<ScoreboardItemModalProps> = (props) => {
                               }}
                             />
                           </Table.Td>
-                          <Table.Td fz="sm">{info.category}</Table.Td>
+                          <Table.Td fz="sm">{typeLabel}</Table.Td>
                           <Table.Td ff="monospace" fz="sm">
                             {chal.score}
                             {info.score && chal.score! > info.score && chal.type && BloodsTypes.includes(chal.type) && (

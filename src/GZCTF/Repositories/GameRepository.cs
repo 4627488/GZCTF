@@ -294,7 +294,8 @@ public class GameRepository(
                     Category = c.Category,
                     Score = c.CurrentScore,
                     SolvedCount = c.AcceptedCount,
-                    DisableBloodBonus = c.DisableBloodBonus
+                    DisableBloodBonus = c.DisableBloodBonus,
+                    ScoreFreezeTimeUtc = c.ScoreFreezeTimeUtc
                     // pending fields: Bloods
                 }).ToDictionaryAsync(c => c.Id, token);
 
@@ -305,11 +306,12 @@ public class GameRepository(
                 .IgnoreAutoIncludes()
                 .Include(s => s.User)
                 .Include(s => s.GameChallenge)
+                .Include(s => s.Participation)
                 .Where(s => s.Status == AnswerResult.Accepted
                             && s.GameId == game.Id
                             && s.GameChallenge != null
                             && s.GameChallenge.IsEnabled
-                            && s.SubmitTimeUtc < game.EndTimeUtc)
+                            && s.Participation.Status == ParticipationStatus.Accepted)
                 .GroupBy(s => new { s.ChallengeId, s.ParticipationId })
                 .Where(g => g.Any())
                 .Select(g =>
@@ -352,8 +354,11 @@ public class GameRepository(
 
             var challenge = challenges[item.Id];
 
+            var freezeTime = challenge.ScoreFreezeTimeUtc ?? game.EndTimeUtc;
+            var isFrozenSolve = freezeTime <= item.SubmitTimeUtc;
+
             // 4.1. generate bloods
-            if (challenge is { DisableBloodBonus: false, Bloods.Count: < 3 })
+            if (!isFrozenSolve && challenge is { DisableBloodBonus: false, Bloods.Count: < 3 })
             {
                 item.Type = challenge.Bloods.Count switch
                 {
@@ -371,22 +376,31 @@ public class GameRepository(
                 });
             }
 
-            // 4.2. update score
-            item.Score = noBonus
-                ? item.Type switch
-                {
-                    SubmissionType.Unaccepted => throw new UnreachableException(),
-                    _ => challenge.Score
-                }
-                : item.Type switch
-                {
-                    SubmissionType.Unaccepted => throw new UnreachableException(),
-                    SubmissionType.FirstBlood => Convert.ToInt32(challenge.Score * bloodFactors[0]),
-                    SubmissionType.SecondBlood => Convert.ToInt32(challenge.Score * bloodFactors[1]),
-                    SubmissionType.ThirdBlood => Convert.ToInt32(challenge.Score * bloodFactors[2]),
-                    SubmissionType.Normal => challenge.Score,
-                    _ => throw new ArgumentException(nameof(item.Type))
-                };
+            if (isFrozenSolve)
+            {
+                item.Type = SubmissionType.Late;
+                item.Score = 0;
+                challenge.FrozenSolvedCount++;
+            }
+            else
+            {
+                // 4.2. update score
+                item.Score = noBonus
+                    ? item.Type switch
+                    {
+                        SubmissionType.Unaccepted => throw new UnreachableException(),
+                        _ => challenge.Score
+                    }
+                    : item.Type switch
+                    {
+                        SubmissionType.Unaccepted => throw new UnreachableException(),
+                        SubmissionType.FirstBlood => Convert.ToInt32(challenge.Score * bloodFactors[0]),
+                        SubmissionType.SecondBlood => Convert.ToInt32(challenge.Score * bloodFactors[1]),
+                        SubmissionType.ThirdBlood => Convert.ToInt32(challenge.Score * bloodFactors[2]),
+                        SubmissionType.Normal => challenge.Score,
+                        _ => throw new ArgumentException(nameof(item.Type))
+                    };
+            }
 
             // 4.3. update scoreboard item
             scoreboardItem.SolvedChallenges.Add(item);
@@ -463,7 +477,8 @@ public class GameRepository(
             Challenges = challengesDict,
             Items = items,
             TimeLines = timelines,
-            BloodBonusValue = game.BloodBonus.Val
+            BloodBonusValue = game.BloodBonus.Val,
+            UpdateTimeUtc = DateTimeOffset.UtcNow
         };
     }
 }

@@ -46,6 +46,7 @@ export enum SubmissionType {
   SecondBlood = "SecondBlood",
   ThirdBlood = "ThirdBlood",
   Normal = "Normal",
+  Late = "Late",
 }
 
 /** Task execution status */
@@ -1070,6 +1071,8 @@ export interface ChallengeEditDetailModel {
   enableTrafficCapture?: boolean | null;
   /** Whether to disable blood bonus */
   disableBloodBonus?: boolean | null;
+  /** Score freeze time. Accepted submissions after this moment will no longer award points */
+  scoreFreezeTimeUtc?: number | null;
   /**
    * Maximum number of submissions allowed per team (0 = no limit)
    * @format int32
@@ -1202,6 +1205,10 @@ export interface ChallengeUpdateModel {
    * @max 10000
    */
   submissionLimit?: number | null;
+  /** Score freeze time. Accepted submissions after this moment will no longer award points */
+  scoreFreezeTimeUtc?: number | null;
+  /** Whether to clear the configured score freeze time */
+  clearScoreFreezeTime?: boolean | null;
   /** Container image name and tag */
   containerImage?: string | null;
   /**
@@ -1522,10 +1529,20 @@ export interface ChallengeInfo {
    * @format int32
    */
   solved?: number;
+  /**
+   * Number of teams that solved the challenge after the score freeze
+   * @format int32
+   */
+  frozenSolved?: number;
   /** Bloods for the challenge */
   bloods?: Blood[];
   /** Whether to disable blood bonus */
   disableBloodBonus?: boolean;
+  /**
+   * The time after which accepted submissions no longer award score
+   * @format uint64
+   */
+  scoreFreezeTimeUtc?: number | null;
 }
 
 export interface Blood {
@@ -1781,6 +1798,8 @@ export interface ChallengeDetailModel {
    * @format int32
    */
   attempts?: number;
+  /** Score freeze time. Accepted submissions after this moment will no longer award points */
+  scoreFreezeTimeUtc?: number | null;
 }
 
 export interface ClientFlagContext {
@@ -2036,7 +2055,7 @@ export class HttpClient<SecurityDataType = unknown> {
       headers: {
         ...(method &&
           this.instance.defaults.headers[
-            method.toLowerCase() as keyof HeadersDefaults
+          method.toLowerCase() as keyof HeadersDefaults
           ]),
         ...params1.headers,
         ...(params2 && params2.headers),

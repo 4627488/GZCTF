@@ -120,6 +120,16 @@ public class ChallengeUpdateModel
         Hints is not null && Hints.GetSetHashCode() != originalHash;
 
     /// <summary>
+    /// Score freeze time. After this moment accepted submissions no longer gain points.
+    /// </summary>
+    public DateTimeOffset? ScoreFreezeTimeUtc { get; set; }
+
+    /// <summary>
+    /// Whether to clear the score freeze time setting.
+    /// </summary>
+    public bool? ClearScoreFreezeTime { get; set; }
+
+    /// <summary>
     /// Check if the Flag template is valid
     /// </summary>
     /// <returns></returns>

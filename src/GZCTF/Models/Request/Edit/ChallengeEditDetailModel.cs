@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 using GZCTF.Models.Request.Game;
 
 namespace GZCTF.Models.Request.Edit;
@@ -125,6 +126,11 @@ public class ChallengeEditDetailModel
     public bool? DisableBloodBonus { get; set; } = false;
 
     /// <summary>
+    /// The time after which accepted submissions stop awarding points
+    /// </summary>
+    public DateTimeOffset? ScoreFreezeTimeUtc { get; set; }
+
+    /// <summary>
     /// Maximum number of submissions allowed per team (0 = no limit)
     /// </summary>
     [Required]
@@ -167,6 +173,7 @@ public class ChallengeEditDetailModel
             ContainerExposePort = chal.ContainerExposePort,
             EnableTrafficCapture = chal.EnableTrafficCapture,
             DisableBloodBonus = chal.DisableBloodBonus,
+            ScoreFreezeTimeUtc = chal.ScoreFreezeTimeUtc,
             OriginalScore = chal.OriginalScore,
             MinScoreRate = chal.MinScoreRate,
             Difficulty = chal.Difficulty,

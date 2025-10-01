@@ -141,6 +141,11 @@ const TableRow: FC<{
   const solved = item.solvedChallenges
   const theme = useMantineTheme()
   const { locale } = useLanguage()
+  const { t } = useTranslation()
+  const solvedChallenges = solved ?? []
+  const lateCount = solvedChallenges.filter((c) => c.type === SubmissionType.Late).length
+  const scoredCount = solvedChallenges.length - lateCount
+  const solvedDisplay = lateCount > 0 ? `${scoredCount} (+${lateCount})` : `${scoredCount}`
 
   const totalScore = useMemo(() => {
     return solved?.reduce((acc, cur) => acc + (cur?.score ?? 0), 0) ?? 0
@@ -177,7 +182,7 @@ const TableRow: FC<{
         </Group>
       </Table.Td>
       <Table.Td className={cx(classes.mono, classes.left)} style={{ left: Lefts[3] }}>
-        {solved?.length}
+        {solvedDisplay}
       </Table.Td>
       <Table.Td className={cx(classes.mono, classes.left)} style={{ left: Lefts[4] }}>
         {totalScore}
@@ -191,6 +196,7 @@ const TableRow: FC<{
             if (!icon) return <Table.Td key={item.id} className={classes.mono} />
 
             const cate = challengeCategoryLabelMap.get(item.category as ChallengeCategory)!
+            const isLate = chal?.type === SubmissionType.Late
 
             return (
               <Table.Td key={item.id} className={classes.mono}>
@@ -208,6 +214,11 @@ const TableRow: FC<{
                       <Text c="dimmed" fz="xs" className={cx(classes.text, classes.mono)}>
                         # {dayjs(chal?.time).locale(locale).format('L LTS')}
                       </Text>
+                      {isLate && (
+                        <Text c="red" fz="xs" className={classes.text}>
+                          {t('game.content.scoreboard_late_tooltip')}
+                        </Text>
+                      )}
                     </Stack>
                   }
                 >
@@ -354,6 +365,12 @@ export const ScoreboardTable: FC<ScoreboardProps> = ({ division, setDivision }) 
                       </Group>
                     </Tooltip>
                   ))}
+                  <Tooltip label={t('game.content.legend.late')} transitionProps={{ transition: 'pop' }}>
+                    <Group justify="left" gap={2}>
+                      <Icon {...iconMap.get(SubmissionType.Late)!} />
+                      <Text>{t('game.content.legend.late_descr')}</Text>
+                    </Group>
+                  </Tooltip>
                 </Group>
               </Tooltip.Group>
               <Text size="sm" c="dimmed">

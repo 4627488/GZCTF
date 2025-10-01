@@ -246,7 +246,12 @@ public enum SubmissionType : byte
     /// <summary>
     /// Solved
     /// </summary>
-    Normal = 4
+    Normal = 4,
+
+    /// <summary>
+    /// Solved after score freeze (no score awarded)
+    /// </summary>
+    Late = 5
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter<ParticipationStatus>))]
