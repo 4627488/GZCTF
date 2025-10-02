@@ -62,12 +62,19 @@ export const ChallengePanel: FC = () => {
 
   const currentChallenges =
     challenges &&
-    (activeTab !== 'All' ? (challenges[activeTab] ?? []) : allChallenges).filter((chal) => {
-      const solvedEntry = teamInfo?.rank?.solvedChallenges?.find((c) => c.id === chal.id)
-      if (hideSolved && solvedEntry) return false
-      if (hideFrozen && isChallengeFrozen(chal)) return false
-      return true
-    })
+    (activeTab !== 'All' ? (challenges[activeTab] ?? []) : allChallenges)
+      .filter((chal) => {
+        const solvedEntry = teamInfo?.rank?.solvedChallenges?.find((c) => c.id === chal.id)
+        if (hideSolved && solvedEntry) return false
+        if (hideFrozen && isChallengeFrozen(chal)) return false
+        return true
+      })
+      .sort((a, b) => {
+        const aFrozen = isChallengeFrozen(a)
+        const bFrozen = isChallengeFrozen(b)
+        if (aFrozen === bFrozen) return 0
+        return aFrozen ? 1 : -1
+      })
 
   const [challenge, setChallenge] = useState<ChallengeInfo | null>(null)
   const [detailOpened, setDetailOpened] = useState(false)
