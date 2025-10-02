@@ -757,6 +757,57 @@ export interface LocalFile {
   name: string;
 }
 
+export interface ResumableUploadTicket {
+  /**
+   * Upload session ID
+   * @format guid
+   */
+  uploadId?: string;
+  /** File name */
+  fileName?: string;
+  /**
+   * File size in bytes
+   * @format uint64
+   */
+  fileSize?: number;
+  /**
+   * Recommended chunk size in bytes
+   * @format int32
+   */
+  chunkSize?: number;
+  /**
+   * Uploaded bytes count
+   * @format uint64
+   */
+  uploadedBytes?: number;
+  /**
+   * Uploaded chunk indexes
+   */
+  uploadedChunks?: number[];
+  /**
+   * Expiration time
+   * @format date-time
+   */
+  expiresAt?: string;
+}
+
+export interface ResumableUploadRequest {
+  /** File name */
+  fileName: string;
+  /**
+   * File size in bytes
+   * @format uint64
+   */
+  fileSize: number;
+  /**
+   * Custom chunk size in bytes
+   * @format int32
+   */
+  chunkSize?: number | null;
+  /** Content type */
+  contentType?: string | null;
+}
+
 /** This record represents the response for an API token request. */
 export interface ApiTokenResponse {
   token?: string;
@@ -2014,6 +2065,7 @@ export enum ContentType {
   FormData = "multipart/form-data",
   UrlEncoded = "application/x-www-form-urlencoded",
   Text = "text/plain",
+  OctetStream = "application/octet-stream",
 }
 
 export class HttpClient<SecurityDataType = unknown> {
@@ -3368,6 +3420,94 @@ export class Api<
       this.request<void, RequestResponse>({
         path: `/assets/${hash}/${filename}`,
         method: "GET",
+        ...params,
+      }),
+
+    /**
+     * @description Create a resumable upload session
+     *
+     * @tags Assets
+     * @name AssetsCreateResumable
+     * @summary Create a resumable upload session
+     * @request POST:/api/assets/resumable
+     */
+    assetsCreateResumable: (data: ResumableUploadRequest, params: RequestParams = {}) =>
+      this.request<ResumableUploadTicket, RequestResponse>({
+        path: `/api/assets/resumable`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Get resumable upload session status
+     *
+     * @tags Assets
+     * @name AssetsGetResumable
+     * @summary Get resumable upload session status
+     * @request GET:/api/assets/resumable/{uploadId}
+     */
+    assetsGetResumable: (uploadId: string, params: RequestParams = {}) =>
+      this.request<ResumableUploadTicket, RequestResponse>({
+        path: `/api/assets/resumable/${uploadId}`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Upload a chunk to a resumable session
+     *
+     * @tags Assets
+     * @name AssetsUploadChunk
+     * @summary Upload a resumable chunk
+     * @request PUT:/api/assets/resumable/{uploadId}/chunks/{index}
+     */
+    assetsUploadChunk: (
+      uploadId: string,
+      index: number,
+      data: Blob,
+      params: RequestParams = {},
+    ) =>
+      this.request<ResumableUploadTicket, RequestResponse>({
+        path: `/api/assets/resumable/${uploadId}/chunks/${index}`,
+        method: "PUT",
+        body: data,
+        type: ContentType.OctetStream,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Complete a resumable upload session
+     *
+     * @tags Assets
+     * @name AssetsCompleteResumable
+     * @summary Complete a resumable upload
+     * @request POST:/api/assets/resumable/{uploadId}/complete
+     */
+    assetsCompleteResumable: (uploadId: string, params: RequestParams = {}) =>
+      this.request<LocalFile, RequestResponse>({
+        path: `/api/assets/resumable/${uploadId}/complete`,
+        method: "POST",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Abort a resumable upload session
+     *
+     * @tags Assets
+     * @name AssetsAbortResumable
+     * @summary Abort a resumable upload
+     * @request DELETE:/api/assets/resumable/{uploadId}
+     */
+    assetsAbortResumable: (uploadId: string, params: RequestParams = {}) =>
+      this.request<void, RequestResponse>({
+        path: `/api/assets/resumable/${uploadId}`,
+        method: "DELETE",
         ...params,
       }),
 

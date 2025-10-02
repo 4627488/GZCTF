@@ -31,6 +31,7 @@ import { AttachmentUploadModal } from '@Components/admin/AttachmentUploadModal'
 import { FlagCreateModal } from '@Components/admin/FlagCreateModal'
 import { FlagEditPanel } from '@Components/admin/FlagEditPanel'
 import { WithChallengeEdit } from '@Components/admin/WithChallengeEdit'
+import { uploadFileResumable } from '@Utils/ResumableUpload'
 import { showErrorMsg } from '@Utils/Shared'
 import { useDisplayInputStyles } from '@Utils/ThemeOverride'
 import { useEditChallenge } from '@Hooks/useEdit'
@@ -106,20 +107,17 @@ const OneAttachmentWithFlags: FC<FlagEditProps> = ({ onDelete }) => {
     setDisabled(true)
 
     try {
-      const res = await api.assets.assetsUpload(
-        {
-          files: [file],
+      const remoteFile = await uploadFileResumable(file, {
+        onProgress: (uploadedBytes, totalBytes) => {
+          if (totalBytes === 0) {
+            setProgress(0)
+            return
+          }
+          setProgress((uploadedBytes / totalBytes) * 90)
         },
-        undefined,
-        {
-          onUploadProgress: (e) => {
-            setProgress((e.loaded / (e.total ?? 1)) * 90)
-          },
-        }
-      )
-      const remoteFile = res.data[0]
+      })
       setProgress(95)
-      if (remoteFile) {
+      if (remoteFile?.hash) {
         await api.edit.editUpdateAttachment(numId, numCId, {
           attachmentType: FileType.Local,
           fileHash: remoteFile.hash,

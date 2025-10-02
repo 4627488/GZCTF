@@ -10,6 +10,7 @@ using GZCTF.Services.Container;
 using GZCTF.Services.CronJob;
 using GZCTF.Services.Mail;
 using GZCTF.Services.Token;
+using GZCTF.Services.Upload;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 
@@ -76,6 +77,7 @@ static class ServicesExtension
         builder.Services.AddScoped<IParticipationRepository, ParticipationRepository>();
         builder.Services.AddScoped<IExerciseInstanceRepository, ExerciseInstanceRepository>();
         builder.Services.AddScoped<IExerciseChallengeRepository, ExerciseChallengeRepository>();
+        builder.Services.AddScoped<IResumableUploadService, ResumableUploadService>();
 
         builder.Services.AddScoped<ExcelHelper>();
 

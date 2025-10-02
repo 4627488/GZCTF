@@ -3,7 +3,10 @@ using System.Net.Mime;
 using FluentStorage;
 using FluentStorage.Blobs;
 using GZCTF.Middlewares;
+using GZCTF.Models.Data;
+using GZCTF.Models.Request.Assets;
 using GZCTF.Repositories.Interface;
+using GZCTF.Services.Upload;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Localization;
@@ -20,6 +23,7 @@ namespace GZCTF.Controllers;
 public class AssetsController(
     IBlobStorage storage,
     IBlobRepository blobService,
+    IResumableUploadService uploadService,
     ILogger<AssetsController> logger,
     IStringLocalizer<Program> localizer) : ControllerBase
 {
@@ -141,5 +145,119 @@ public class AssetsController(
             TaskStatus.NotFound => NotFound(),
             _ => BadRequest(new RequestResponse(localizer[nameof(Resources.Program.File_DeletionFailed)]))
         };
+    }
+
+    /// <summary>
+    /// Create a resumable upload session
+    /// </summary>
+    /// <remarks>
+    /// Use this endpoint to upload large attachments reliably.
+    /// </remarks>
+    [RequireAdmin]
+    [HttpPost("api/[controller]/resumable")]
+    [ProducesResponseType(typeof(ResumableUploadTicket), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RequestResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateResumable([FromBody] ResumableUploadRequest request,
+        CancellationToken token)
+    {
+        try
+        {
+            var session = await uploadService.CreateSessionAsync(request, token);
+            return Ok(session);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            logger.LogWarning(ex, "Failed to create upload session");
+            return BadRequest(new RequestResponse(localizer[nameof(Resources.Program.Assets_IOError)]));
+        }
+    }
+
+    /// <summary>
+    /// Get resumable upload session status
+    /// </summary>
+    [RequireAdmin]
+    [HttpGet("api/[controller]/resumable/{uploadId:guid}")]
+    [ProducesResponseType(typeof(ResumableUploadTicket), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RequestResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetResumable([FromRoute] Guid uploadId, CancellationToken token)
+    {
+        var session = await uploadService.GetSessionAsync(uploadId, token);
+        if (session is null)
+            return NotFound(new RequestResponse(localizer[nameof(Resources.Program.File_NotFound)],
+                StatusCodes.Status404NotFound));
+
+        return Ok(session);
+    }
+
+    /// <summary>
+    /// Upload a resumable chunk
+    /// </summary>
+    [RequireAdmin]
+    [HttpPut("api/[controller]/resumable/{uploadId:guid}/chunks/{index:int}")]
+    [Consumes(MediaTypeNames.Application.Octet)]
+    [ProducesResponseType(typeof(ResumableUploadTicket), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RequestResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(RequestResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UploadChunk([FromRoute] Guid uploadId, [FromRoute] int index,
+        CancellationToken token)
+    {
+        if (!Request.ContentLength.HasValue || Request.ContentLength.Value <= 0)
+            return BadRequest(new RequestResponse(localizer[nameof(Resources.Program.File_SizeZero)]));
+
+        try
+        {
+            var session = await uploadService.UploadChunkAsync(uploadId, index, Request.Body,
+                Request.ContentLength.Value, token);
+            return Ok(session);
+        }
+        catch (FileNotFoundException)
+        {
+            return NotFound(new RequestResponse(localizer[nameof(Resources.Program.File_NotFound)],
+                StatusCodes.Status404NotFound));
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentOutOfRangeException)
+        {
+            logger.LogWarning(ex, "Failed to upload chunk {Index} for session {UploadId}", index, uploadId);
+            return BadRequest(new RequestResponse(localizer[nameof(Resources.Program.Assets_IOError)]));
+        }
+    }
+
+    /// <summary>
+    /// Complete a resumable upload
+    /// </summary>
+    [RequireAdmin]
+    [HttpPost("api/[controller]/resumable/{uploadId:guid}/complete")]
+    [ProducesResponseType(typeof(LocalFile), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RequestResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(RequestResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CompleteResumable([FromRoute] Guid uploadId, CancellationToken token)
+    {
+        try
+        {
+            var file = await uploadService.CompleteAsync(uploadId, token);
+            return Ok(file);
+        }
+        catch (FileNotFoundException)
+        {
+            return NotFound(new RequestResponse(localizer[nameof(Resources.Program.File_NotFound)],
+                StatusCodes.Status404NotFound));
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException)
+        {
+            logger.LogWarning(ex, "Failed to complete upload session {UploadId}", uploadId);
+            return BadRequest(new RequestResponse(localizer[nameof(Resources.Program.Assets_IOError)]));
+        }
+    }
+
+    /// <summary>
+    /// Abort a resumable upload session and clean temporary files
+    /// </summary>
+    [RequireAdmin]
+    [HttpDelete("api/[controller]/resumable/{uploadId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> AbortResumable([FromRoute] Guid uploadId, CancellationToken token)
+    {
+        await uploadService.AbortAsync(uploadId, token);
+        return NoContent();
     }
 }

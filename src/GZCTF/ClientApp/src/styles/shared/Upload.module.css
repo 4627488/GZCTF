@@ -22,3 +22,16 @@
 .hover:hover {
   cursor: pointer;
 }
+
+.fileCard {
+  position: relative;
+  overflow: hidden;
+}
+
+.fileMeta {
+  min-width: 0;
+}
+
+.itemProgress {
+  margin-top: 0.35rem;
+}
