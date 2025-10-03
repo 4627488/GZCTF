@@ -52,11 +52,8 @@ export const ChallengeCard: FC<ChallengeCardProps> = (props: ChallengeCardProps)
   const isFrozen = frozen ?? (status === SubmissionType.Late)
   const frozenAccent = theme.colors.blue[colorScheme === 'dark' ? 4 : 5]
   const frozenOverlay = alpha(frozenAccent, colorScheme === 'dark' ? 0.2 : 0.16)
-  const frozenOutline = alpha(frozenAccent, colorScheme === 'dark' ? 0.6 : 0.45)
   const frozenCardStyle = isFrozen
     ? {
-      outline: `1px dashed ${frozenOutline}`,
-      outlineOffset: -2,
       backgroundImage: `linear-gradient(135deg, ${frozenOverlay} 0%, transparent 65%)`,
     }
     : undefined
